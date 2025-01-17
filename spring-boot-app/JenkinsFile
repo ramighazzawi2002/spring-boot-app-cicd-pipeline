@@ -52,8 +52,8 @@ pipeline {
           sh '''
             git config user.email "pshar_xyz@gmail.com"
             git config user.name "Pranav Sharma"
-            BUILD_NUMBER=${BUILD_NUMBER}
-            sh 'bash -c "sed -i \"s|image: pshar10/cicd-pipeline:[^ ]*|image: pshar10/cicd-pipeline:${env.BUILD_NUMBER}|g\" Manifests/deployment.yml"'
+            BUILD_NUMBER=${env.BUILD_NUMBER} 
+            sed -i "s|image: pshar10/cicd-pipeline:[^ ]*|image: pshar10/cicd-pipeline:${env.BUILD_NUMBER}|g" Manifests/deployment.yml
             git add Manifests/deployment.yml
             git commit -m "Update deployment image to version ${BUILD_NUMBER}"
             git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
