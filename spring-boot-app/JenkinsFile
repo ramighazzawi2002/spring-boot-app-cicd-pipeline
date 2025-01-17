@@ -54,19 +54,15 @@ pipeline {
             git config user.email "pshar_xyz@gmail.com"
             git config user.name "Pranav Sharma"
             
-            # Debugging step - check if the file exists
-            ls -l Manifests/
-            
-            # Make sure the sed command works correctly
-            sed -i '' "s|image: pshar10/cicd-pipeline:[^ ]*|image: pshar10/cicd-pipeline:${env.BUILD_NUMBER}|g" Manifests/deployment.yml
-            
-            # Verify changes
-            cat Manifests/deployment.yml
-            
+            # Explicitly use bash
+            /bin/bash -c "
+            sed -i '' 's|image: pshar10/cicd-pipeline:[^ ]*|image: pshar10/cicd-pipeline:${env.BUILD_NUMBER}|g' Manifests/deployment.yml
             git add Manifests/deployment.yml
-            git commit -m "Update deployment image to version ${env.BUILD_NUMBER}"
+            git commit -m 'Update deployment image to version ${env.BUILD_NUMBER}'
             git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+            "
           '''
+
 
         }
       }
