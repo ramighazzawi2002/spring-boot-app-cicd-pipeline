@@ -6,10 +6,15 @@ pipeline {
     }
   }
   stages {
+    stage('Clean Workspace') { // New stage added
+      steps {
+        cleanWs()
+      }
+    }
     stage('Checkout') {
       steps {
         sh 'echo passed'
-        //git branch: 'main', url: 'https://github.com/Pshar10/spring-boot-app-cicd-pipeline.git'
+        // git branch: 'main', url: 'https://github.com/Pshar10/spring-boot-app-cicd-pipeline.git'
       }
     }
     stage('Build and Test') {
@@ -37,32 +42,32 @@ pipeline {
       }
       steps {
         script {
-            sh 'cd spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
-            def dockerImage = docker.image("${DOCKER_IMAGE}")
-            docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
-                dockerImage.push()
-            }
+          sh 'cd spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
+          def dockerImage = docker.image("${DOCKER_IMAGE}")
+          docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
+            dockerImage.push()
+          }
         }
       }
     }
     stage('Update Deployment File') {
-        environment {
-            GIT_REPO_NAME = "spring-boot-app-cicd-pipeline"
-            GIT_USER_NAME = "Pshar10"
+      environment {
+        GIT_REPO_NAME = "spring-boot-app-cicd-pipeline"
+        GIT_USER_NAME = "Pshar10"
+      }
+      steps {
+        withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+          sh '''
+              git config user.email "pshar_xyz@gmail.com"
+              git config user.name "Pranav Sharma"
+              BUILD_NUMBER=${BUILD_NUMBER}
+              sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" Manifests/deployment.yml
+              git add Manifests/deployment.yml
+              git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+              git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+          '''
         }
-        steps {
-            withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-                sh '''
-                    git config user.email "pshar_xyz@gmail.com"
-                    git config user.name "Pranav Sharma"
-                    BUILD_NUMBER=${BUILD_NUMBER}
-                    sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" Manifests/deployment.yml
-                    git add Manifests/deployment.yml
-                    git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-                    git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
-                '''
-            }
-        }
+      }
     }
   }
 }
