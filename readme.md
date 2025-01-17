@@ -22,8 +22,7 @@ Welcome to the **Spring Boot Application CI/CD Pipeline** project! This reposito
         └── main
             ├── java
             │   └── com
-            │       └── abhishek
-            │           └── StartApplication.java  # Main entry point for the Spring Boot app
+            │            StartApplication.java  # Main entry point for the Spring Boot app
             └── resources
                 ├── application.properties          # Spring Boot configuration
                 ├── static                          # Static assets
@@ -161,5 +160,10 @@ Welcome to the **Spring Boot Application CI/CD Pipeline** project! This reposito
 [GitHub Repository](https://github.com/Pshar10/spring-boot-app-cicd-pipeline)
 
 ---
+## Credits
+
+This project is inspired by [Abhishek Veeramalla's Jenkins Zero to Hero repository](https://github.com/iam-veeramalla/Jenkins-Zero-To-Hero). His work provided valuable guidance in setting up and implementing the CI/CD pipeline.
+
+
 
 Feel free to contribute or raise issues to improve this project! 🚀
