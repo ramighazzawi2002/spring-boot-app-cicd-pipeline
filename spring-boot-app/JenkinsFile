@@ -2,31 +2,34 @@ pipeline {
   agent {
     docker {
       image 'pshar10/maven-pranav-docker-agent:v1'
-      args '--user root --privileged -v /var/run/docker.sock:/var/run/docker.sock' // mount Docker socket to access the host's Docker daemon
+      args '--user root --privileged -v /var/run/docker.sock:/var/run/docker.sock' // Ensures Jenkins has proper permissions
     }
   }
   stages {
-    stage('Clean Workspace') { // New stage added
+    stage('Clean Workspace') {
       steps {
-        cleanWs()
+        cleanWs() // Ensures workspace is clean before starting
+      }
+    }
+    stage('Prepare Workspace') {
+      steps {
+        sh 'git clean -fdx' // Force remove untracked files and directories
       }
     }
     stage('Checkout') {
       steps {
-        sh 'echo passed'
-        // git branch: 'main', url: 'https://github.com/Pshar10/spring-boot-app-cicd-pipeline.git'
+        checkout scm // Checkout the code from SCM
       }
     }
     stage('Build and Test') {
       steps {
         sh 'ls -ltr'
-        // build the project and create a JAR file
-        sh 'cd spring-boot-app && mvn clean package'
+        sh 'cd spring-boot-app && mvn clean package' // Build the project
       }
     }
     stage('Static Code Analysis') {
       environment {
-        SONAR_URL = "http://54.144.5.200:9000" 
+        SONAR_URL = "http://54.144.5.200:9000"
       }
       steps {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
@@ -37,7 +40,6 @@ pipeline {
     stage('Build and Push Docker Image') {
       environment {
         DOCKER_IMAGE = "pshar10/cicd-pipeline:${BUILD_NUMBER}"
-        // DOCKERFILE_LOCATION = "spring-boot-app/Dockerfile"
         REGISTRY_CREDENTIALS = credentials('docker-cred')
       }
       steps {
@@ -58,13 +60,13 @@ pipeline {
       steps {
         withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
           sh '''
-              git config user.email "pshar_xyz@gmail.com"
-              git config user.name "Pranav Sharma"
-              BUILD_NUMBER=${BUILD_NUMBER}
-              sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" Manifests/deployment.yml
-              git add Manifests/deployment.yml
-              git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-              git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+            git config user.email "pshar_xyz@gmail.com"
+            git config user.name "Pranav Sharma"
+            BUILD_NUMBER=${BUILD_NUMBER}
+            sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" Manifests/deployment.yml
+            git add Manifests/deployment.yml
+            git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
           '''
         }
       }
