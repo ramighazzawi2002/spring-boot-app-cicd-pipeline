@@ -42,41 +42,26 @@ pipeline {
         }
       }
     }
-    stage('Ask for Replicas') {
-      steps {
-        script {
-          // Ask the user for the number of replicas (with a default of 2)
-          replicas = input(
-            message: 'Enter the number of replicas:',
-            parameters: [
-              string(defaultValue: '2', description: 'Number of replicas', name: 'replicas')
-            ]
-          )
-        }
-      }
-    }
     stage('Update Deployment File') {
       environment {
         GIT_REPO_NAME = "spring-boot-app-cicd-pipeline"
         GIT_USER_NAME = "Pshar10"
       }
-      steps {
-        withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-          sh '''
-            git config user.email "pranav.xyz@gmail.com"
-            git config user.name "Pranav Sharma"
-            BUILD_NUMBER=${BUILD_NUMBER}
-            
-            # Dynamically replace the image tag and update the replicas in deployment.yml
-            sed -i "s|image: pshar10/cicd-pipeline:[^ ]*|image: pshar10/cicd-pipeline:${BUILD_NUMBER}|g" Manifests/deployment.yml
-            sed -i "s|replicas: [0-9]*|replicas: ${replicas}|g" Manifests/deployment.yml  # Update replicas count
-            
-            git add Manifests/deployment.yml
-            git commit -m "Update deployment image to version ${BUILD_NUMBER} and replicas to ${replicas}"
-            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
-          '''
+        steps {
+            withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+                sh '''
+                    git config user.email "pranav.xyz@gmail.com"
+                    git config user.name "Pranav Sharma"
+                    BUILD_NUMBER=${BUILD_NUMBER}
+                    sed -i "s|image: pshar10/cicd-pipeline:[^ ]*|image: pshar10/cicd-pipeline:${BUILD_NUMBER}|g" Manifests/deployment.yml
+                    git add Manifests/deployment.yml
+                    git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+                    git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+                '''
+            }
         }
-      }
     }
   }
 }
+
+
