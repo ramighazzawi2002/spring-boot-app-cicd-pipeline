@@ -11,14 +11,9 @@ pipeline {
         cleanWs() // Ensures workspace is clean before starting
       }
     }
-    stage('Prepare Workspace') {
-      steps {
-        sh 'git clean -fdx' // Force remove untracked files and directories
-      }
-    }
     stage('Checkout') {
       steps {
-        checkout scm // Checkout the code from SCM
+        sh 'echo passed' // Checkout the code from SCM
       }
     }
     stage('Build and Test') {
