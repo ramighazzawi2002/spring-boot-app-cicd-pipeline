@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: spring-boot-app
-        image: pshar10/cicd-pipeline:${env.BUILD_NUMBER}
+        image: pshar10/cicd-pipeline:2
         ports:
         - containerPort: 8080
