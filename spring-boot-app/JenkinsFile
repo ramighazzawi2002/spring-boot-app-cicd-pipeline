@@ -26,8 +26,6 @@ pipeline {
       }
     }
     
-    // (Static Code Analysis stage is commented out, which is fine for now)
-    
     stage('Build and Push Docker Image') {
       environment {
         DOCKER_IMAGE = "ramighazzawi/cicd-pipeline:${BUILD_NUMBER}"
@@ -48,7 +46,6 @@ pipeline {
     stage('Ask for Replicas') {
       steps {
         script {
-          // 🛑 FIX 1: Store input directly into a global environment variable (env.REPLICAS_VALUE)
           env.REPLICAS_VALUE = input(
             message: 'Enter the number of replicas:',
             parameters: [
@@ -64,49 +61,54 @@ pipeline {
         GIT_REPO_NAME = "spring-boot-app-cicd-pipeline"
         GIT_USER_NAME = "ramighazzawi2002"
       }
-        steps {
-            withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-              // Using triple quotes (""") for cleaner shell scripts
-              sh """
-                # The value is now available through the environment variable
-                echo "Replicas value: \$REPLICAS_VALUE"
+      steps {
+        withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+          sh """
+            echo "Replicas value: \$REPLICAS_VALUE"
 
-                git config user.email "rami.ghazzawiabed@gmail.com"
-                git config user.name "ramighazzawi2002"
-                
-                # 🛑 FIX 2a: Ensure space after 'image:' in the search pattern to match YAML format
-                # Note: Check your YAML file for the exact image name (ramighazzawi vs pshar10)
-                sed -i 's|image: ramighazzawi/cicd-pipeline:[^ ]*|image: ramighazzawi/cicd-pipeline:${BUILD_NUMBER}|g' Manifests/deployment.yml
-
-                # 🛑 FIX 2b: Use the environment variable directly
-                sed -i 's|replicas: [0-9]*|replicas: \${REPLICAS_VALUE}|g' Manifests/deployment.yml
-                
-                git add Manifests/deployment.yml
-                
-                # Check if there are changes before committing
-                if git diff --cached --exit-code; then
-                    echo "No changes found in Manifests/deployment.yml. Skipping commit."
-                else
-                    git commit -m "Update deployment image to version \${BUILD_NUMBER} and replicas to \${REPLICAS_VALUE}"
-                    git push https://\${GITHUB_TOKEN}@github.com/\${GIT_USER_NAME}/\${GIT_REPO_NAME} HEAD:main
-                fi
-              """
-            }
+            git config user.email "rami.ghazzawiabed@gmail.com"
+            git config user.name "ramighazzawi2002"
+            
+            sed -i 's|image: ramighazzawi/cicd-pipeline:[^ ]*|image: ramighazzawi/cicd-pipeline:${BUILD_NUMBER}|g' Manifests/deployment.yml
+            sed -i 's|replicas: [0-9]*|replicas: \${REPLICAS_VALUE}|g' Manifests/deployment.yml
+            
+            git add Manifests/deployment.yml
+            
+            if git diff --cached --exit-code; then
+              echo "No changes found in Manifests/deployment.yml. Skipping commit."
+            else
+              git commit -m "Update deployment image to version \${BUILD_NUMBER} and replicas to \${REPLICAS_VALUE}"
+              git push https://\${GITHUB_TOKEN}@github.com/\${GIT_USER_NAME}/\${GIT_REPO_NAME} HEAD:main
+            fi
+          """
         }
+      }
     }
+    
     stage('Deploy to Kubernetes') {
       steps {
         script {
-          // ملاحظة: يجب أن يكون لديك إعداد لـ kubectl يعمل ضمن Jenkins Agent
-          // ويجب أن يكون ملف 'kubeconfig' متاحًا أو تم إعداده مسبقًا.
-
-          // تطبيق ملف التوزيع (Deployment)
-          sh 'kubectl apply -f Manifests/deployment.yml'
-          
-          // تطبيق ملف الخدمة (Service) للتأكد من تحديث المنافذ والوصول
-          sh 'kubectl apply -f Manifests/service.yml' 
-          
-          echo "Deployment of image ${BUILD_NUMBER} complete. Check service external IP."
+          withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+            sh '''
+              export KUBECONFIG=$KUBECONFIG
+              
+              echo "Checking Kubernetes cluster connection..."
+              kubectl cluster-info
+              
+              echo "Applying deployment..."
+              kubectl apply -f Manifests/deployment.yml
+              
+              echo "Applying service..."
+              kubectl apply -f Manifests/service.yml
+              
+              echo "Current status:"
+              kubectl get deployments
+              kubectl get pods
+              kubectl get services
+              
+              echo "Deployment of image ${BUILD_NUMBER} complete!"
+            '''
+          }
         }
       }
     }
