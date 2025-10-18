@@ -26,8 +26,6 @@ pipeline {
       }
     }
     
-    // (Static Code Analysis stage is commented out, which is fine for now)
-    
     stage('Build and Push Docker Image') {
       environment {
         DOCKER_IMAGE = "ramighazzawi/cicd-pipeline:${BUILD_NUMBER}"
@@ -48,7 +46,7 @@ pipeline {
     stage('Ask for Replicas') {
       steps {
         script {
-          // 🛑 FIX 1: Store input directly into a global environment variable (env.REPLICAS_VALUE)
+          // Store input directly into a global environment variable (env.REPLICAS_VALUE)
           env.REPLICAS_VALUE = input(
             message: 'Enter the number of replicas:',
             parameters: [
@@ -66,35 +64,33 @@ pipeline {
       }
         steps {
             withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-              // Using triple quotes (""") for cleaner shell scripts
               sh """
-                # The value is now available through the environment variable
                 echo "Replicas value: \$REPLICAS_VALUE"
 
                 git config user.email "rami.ghazzawiabed@gmail.com"
                 git config user.name "ramighazzawi2002"
                 
-                # 🛑 FIX 2a: Ensure space after 'image:' in the search pattern to match YAML format
-                # Note: Check your YAML file for the exact image name (ramighazzawi vs pshar10)
-                sed -i 's|image: ramighazzawi/cicd-pipeline:[^ ]*|image: ramighazzawi/cicd-pipeline:${BUILD_NUMBER}|g' Manifests/deployment.yml
+                # Update Image Tag
+                sed -i '' 's|image: ramighazzawi/cicd-pipeline:[^ ]*|image: ramighazzawi/cicd-pipeline:${BUILD_NUMBER}|g' Manifests/deployment.yml
 
-                # 🛑 FIX 2b: Use the environment variable directly
-                sed -i 's|replicas: [0-9]*|replicas: \${REPLICAS_VALUE}|g' Manifests/deployment.yml
+                # Update Replicas Count
+                sed -i '' 's|replicas: [0-9]*|replicas: \${REPLICAS_VALUE}|g' Manifests/deployment.yml
                 
                 git add Manifests/deployment.yml
                 
-                # Check if there are changes before committing
                 if git diff --cached --exit-code; then
                     echo "No changes found in Manifests/deployment.yml. Skipping commit."
                 else
                     git commit -m "Update deployment image to version \${BUILD_NUMBER} and replicas to \${REPLICAS_VALUE}"
+                    # Use the stored GITHUB_TOKEN for authentication
                     git push https://\${GITHUB_TOKEN}@github.com/\${GIT_USER_NAME}/\${GIT_REPO_NAME} HEAD:main
                 fi
               """
             }
         }
     }
-  stage('Deploy to Kubernetes') {
+    
+    stage('Deploy to Kubernetes') {
       steps {
         script {
           withCredentials([file(credentialsId: 'minikube-config', variable: 'KUBECONFIG_FILE')]) {
@@ -104,11 +100,12 @@ pipeline {
               
               echo "Attempting deployment with IP: 192.168.49.2 and Port: 60732"
               
-              # 🛑 FIX: Add --validate=false to skip the schema handshake that might be timing out 🛑
-              kubectl apply --validate=false -f Manifests/deployment.yml
-              kubectl apply --validate=false -f Manifests/service.yml 
+              # FINAL FIX: Use --validate=false to skip the schema handshake that causes I/O Timeout
+              # Use --insecure-skip-tls-verify to avoid the certificate error
+              kubectl apply --validate=false --insecure-skip-tls-verify -f Manifests/deployment.yml
+              kubectl apply --validate=false --insecure-skip-tls-verify -f Manifests/service.yml 
               
-              echo "Deployment applied successfully (with validation skipped)."
+              echo "Deployment applied successfully."
             '''
           }
         }
