@@ -1,19 +1,23 @@
 pipeline {
   agent {
     docker {
-      // Ensure this image is correct and accessible
       image 'pshar10/maven-pranav-docker-agent:v1'
-      // These arguments allow Docker and Git operations inside the container
-      args '--user root --privileged -v /var/run/docker.sock:/var/run/docker.sock' 
+      args '--user root --privileged -v /var/run/docker.sock:/var/run/docker.sock'
     }
   }
+  
+  // --- التعديل الحاسم: تخطي عملية الخروج التلقائية الفاشلة ---
+  options {
+    skipDefaultCheckout(true)
+  }
+  // -------------------------------------------------------------
+  
   stages {
     
     stage('Checkout') {
       steps {
-        // --- CRITICAL FIX: Ensures the full Git repository (.git folder) is present ---
-        checkout scm
-        // -----------------------------------------------------------------------------
+        // بما أننا تخطينا الخروج التلقائي، يجب أن نقوم بالخروج يدوياً الآن
+        checkout scm 
         sh 'echo Repository checked out successfully'
       }
     }
@@ -21,15 +25,13 @@ pipeline {
     stage('Build and Test') {
       steps {
         sh 'ls -ltr'
-        // Assumes your spring-boot-app is built using Maven
         sh 'cd spring-boot-app && mvn clean package' 
       }
     }
     
     stage('Static Code Analysis') {
       environment {
-        // Replace this with your actual SonarQube URL
-        SONAR_URL = "http://54.144.5.200:9000" 
+        SONAR_URL = "http://54.144.5.200:9000"
       }
       steps {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
@@ -41,14 +43,13 @@ pipeline {
     stage('Build and Push Docker Image') {
       environment {
         DOCKER_IMAGE = "pshar10/cicd-pipeline:${BUILD_NUMBER}"
-        REGISTRY_CREDENTIALS = credentials('docker-cred') // Check credentials ID
+        REGISTRY_CREDENTIALS = credentials('docker-cred')
       }
       steps {
         script {
           sh 'cd spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
           def dockerImage = docker.image("${DOCKER_IMAGE}")
           
-          // Use the correct Docker registry and credentials ID
           docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
             dockerImage.push()
           }
@@ -59,7 +60,6 @@ pipeline {
     stage('Ask for Replicas') {
       steps {
         script {
-          // This is a manual input step, pausing the pipeline
           replicas = input(
             message: 'Enter the number of replicas:',
             parameters: [
@@ -73,33 +73,28 @@ pipeline {
     stage('Update Deployment File') {
       environment {
         GIT_REPO_NAME = "spring-boot-app-cicd-pipeline"
-        GIT_USER_NAME = "ramighazzawi2002" // Ensure this is your GitHub username
+        GIT_USER_NAME = "ramighazzawi2002"
       }
         steps {
             withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
               sh '''
                 echo "Replicas value: ${replicas}"
 
-                # Configure Git identity for the commit
+                # هذه الأوامر تعمل الآن لأن 'checkout scm' في المرحلة الأولى هيأت مجلد Git
                 git config user.email "rami.ghazzawiabed@gmail.com"
                 git config user.name "ramighazzawi2002"
-                
-                # Use environment variable for build number
-                BUILD_NUMBER="${BUILD_NUMBER}" 
+                BUILD_NUMBER=${BUILD_NUMBER}
                 REPLICAS_VALUE="${replicas}"
 
-                # Update the image tag in the deployment file
-                # The path is 'Manifests/deployment.yml' relative to the repository root
+                # Update the image tag
                 sed -i "s|image: pshar10/cicd-pipeline:[^ ]*|image: pshar10/cicd-pipeline:${BUILD_NUMBER}|g" Manifests/deployment.yml
 
-                # Update the replicas count in the deployment file
+                # Update the replicas count
                 sed -i "s|replicas: [0-9]*|replicas: ${REPLICAS_VALUE}|g" Manifests/deployment.yml
                 
-                # Commit the changes to the local repository
                 git add Manifests/deployment.yml
                 git commit -m "Update deployment image to version ${BUILD_NUMBER} and replicas to ${REPLICAS_VALUE}"
                 
-                # Push the changes back to GitHub using the token
                 git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
               '''
             }
