@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
         - name: spring-boot-app
-          image: ramighazzawi/cicd-pipeline:22
+          image: ramighazzawi/cicd-pipeline:23
           ports:
             - containerPort: 8080
