@@ -1,0 +1,18 @@
+# Start from a standard OpenJDK/Maven image (similar to your old agent's purpose)
+FROM maven:3-openjdk-17-slim
+# --- Install Docker Client (if needed, assuming it's available in the old image) ---
+# NOTE: This only installs the client. The Docker daemon access is handled by the socket mount.
+RUN apt-get update && apt-get install -y docker.io
+
+# --- Install kubectl (Required for the Deploy Stage) ---
+# Install necessary packages for curl and copying files
+RUN apt-get update && apt-get install -y curl
+
+# Download and install kubectl
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+    && chmod +x kubectl \
+    && mv kubectl /usr/local/bin/kubectl
+
+# Set the default user to root (matching your existing Jenkinsfile arg)
+# This is often necessary for Docker-in-Docker functionality
+USER root

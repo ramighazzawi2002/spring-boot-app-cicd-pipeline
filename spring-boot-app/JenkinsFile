@@ -1,8 +1,8 @@
 pipeline {
   agent {
     docker {
-      image 'dind-with-kubectl-and-maven-image:latest'
-      args '--user root --privileged -v /var/run/docker.sock:/var/run/docker.sock'
+      image 'ramighazzawi/dockerfile:v1'
+      args '--user root --privileged -v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/kubectl:/usr/local/bin/kubectl'
     }
   }
   
