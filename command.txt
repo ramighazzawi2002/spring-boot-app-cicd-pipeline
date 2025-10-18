@@ -1,0 +1,18 @@
+kubectl cluster-info
+kubectl config view --flatten --minify
+
+ minikube ip
+
+  minikube service spring-boot-app-service --url
+
+kubectl get pods
+
+kubectl get pods -A   
+
+kubectl get nodes     
+
+minikube start --driver=qemu --network=socket_vmnet --apiserver-ips=192.168.100.112
+
+minikube delete
+
+kubectl config set-cluster minikube --server=https://10.0.2.15:8443
