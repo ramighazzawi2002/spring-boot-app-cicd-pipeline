@@ -2,7 +2,7 @@ pipeline {
   agent {
     docker {
       image 'ramighazzawi/jenkins-k8s-agent:v1'
-      args '--user root --privileged -v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/kubectl:/usr/local/bin/kubectl'
+      args '--user root --privileged -v /var/run/docker.sock:/var/run/docker.sock'
     }
   }
   
