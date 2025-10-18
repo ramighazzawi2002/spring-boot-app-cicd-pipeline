@@ -59,15 +59,16 @@ pipeline {
     stage('Update Deployment File') {
       environment {
         GIT_REPO_NAME = "spring-boot-app-cicd-pipeline"
-        GIT_USER_NAME = "Pshar10"
+        GIT_USER_NAME = "ramighazzawi2002
+"
       }
         steps {
             withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
               sh '''
                 echo "Replicas value: ${replicas}"  // Debugging the replicas value
 
-                git config user.email "pranav.xyz@gmail.com"
-                git config user.name "Pranav Sharma"
+                git config user.email "rami.ghazzawiabed@gmail.com"
+                git config user.name "ramighazzawi2002"
                 BUILD_NUMBER=${BUILD_NUMBER}
                 
                 # Update the image in the deployment file
