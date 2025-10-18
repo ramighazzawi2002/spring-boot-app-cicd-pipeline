@@ -46,7 +46,7 @@ pipeline {
     stage('Ask for Replicas') {
       steps {
         script {
-          // Store input directly into a global environment variable (env.REPLICAS_VALUE)
+          // Store input directly into a global environment variable
           env.REPLICAS_VALUE = input(
             message: 'Enter the number of replicas:',
             parameters: [
@@ -57,7 +57,7 @@ pipeline {
       }
     }
     
-   stage('Update Deployment File') {
+    stage('Update Deployment File') {
       environment {
         GIT_REPO_NAME = "spring-boot-app-cicd-pipeline"
         GIT_USER_NAME = "ramighazzawi2002"
@@ -65,16 +65,16 @@ pipeline {
         steps {
             withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
               sh """
-                echo "Replicas value: \$REPLICAS_VALUE"
+                echo "Replicas value: \${REPLICAS_VALUE}"
 
                 git config user.email "rami.ghazzawiabed@gmail.com"
                 git config user.name "ramighazzawi2002"
                 
-                # FIX 1: Using '/' as delimiter for image update, with the necessary BSD sed empty argument ''
-                sed -i '' 's/image: ramighazzawi\\/cicd-pipeline:[^ ]*/image: ramighazzawi\\/cicd-pipeline:${BUILD_NUMBER}/g' Manifests/deployment.yml
+                # FIX 1: Using the most robust BSD sed syntax (with pipe delimiter '|')
+                sed -i '' 's|image: ramighazzawi/cicd-pipeline:[^ ]*|image: ramighazzawi/cicd-pipeline:${BUILD_NUMBER}|g' Manifests/deployment.yml
 
-                # FIX 2: Using '/' as delimiter for replicas update
-                sed -i '' 's/replicas: [0-9]*/replicas: \${REPLICAS_VALUE}/g' Manifests/deployment.yml
+                # FIX 2: Using the most robust BSD sed syntax for replicas
+                sed -i '' 's|replicas: [0-9]*|replicas: \${REPLICAS_VALUE}|g' Manifests/deployment.yml
                 
                 git add Manifests/deployment.yml
                 
@@ -98,10 +98,10 @@ pipeline {
               # Set the KUBECONFIG file for kubectl to use
               export KUBECONFIG=$KUBECONFIG_FILE
               
-              echo "Attempting deployment with IP: 192.168.49.2 and Port: 60732"
+              echo "Attempting deployment to Minikube..."
               
-              # FINAL FIX: Use --validate=false to skip the schema handshake that causes I/O Timeout
-              # Use --insecure-skip-tls-verify to avoid the certificate error
+              # FINAL NETWORK FIXES: Use --validate=false and --insecure-skip-tls-verify 
+              # to bypass all remaining certificate and I/O timeout issues.
               kubectl apply --validate=false --insecure-skip-tls-verify -f Manifests/deployment.yml
               kubectl apply --validate=false --insecure-skip-tls-verify -f Manifests/service.yml 
               
