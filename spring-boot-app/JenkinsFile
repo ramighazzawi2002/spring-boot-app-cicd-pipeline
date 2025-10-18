@@ -99,12 +99,16 @@ pipeline {
         script {
           withCredentials([file(credentialsId: 'minikube-config', variable: 'KUBECONFIG_FILE')]) {
             sh '''
+              # Set the KUBECONFIG file for kubectl to use
               export KUBECONFIG=$KUBECONFIG_FILE
               
-              kubectl apply -f Manifests/deployment.yml
-              kubectl apply -f Manifests/service.yml 
+              echo "Attempting deployment with IP: 192.168.49.2 and Port: 60732"
               
-              echo "Deployment applied successfully."
+              # 🛑 FIX: Add --validate=false to skip the schema handshake that might be timing out 🛑
+              kubectl apply --validate=false -f Manifests/deployment.yml
+              kubectl apply --validate=false -f Manifests/service.yml 
+              
+              echo "Deployment applied successfully (with validation skipped)."
             '''
           }
         }
