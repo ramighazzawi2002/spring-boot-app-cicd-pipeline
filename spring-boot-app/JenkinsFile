@@ -57,38 +57,38 @@ pipeline {
       }
     }
     
-   stage('Update Deployment File') {
-      environment {
+ stage('Update Deployment File') {
+    environment {
         GIT_REPO_NAME = "spring-boot-app-cicd-pipeline"
         GIT_USER_NAME = "ramighazzawi2002"
-      }
-       steps {
-            withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-              sh """
+    }
+    steps {
+        withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+            sh """
                 echo "Replicas value: \${REPLICAS_VALUE}"
-                // ... (git config commands are the same)
 
-                # FIX: استخدام awk بدلاً من sed لتجنب مشاكل الصيغة
-                awk -v tag="ramighazzawi/cicd-pipeline:\${BUILD_NUMBER}" '
-                  /image:/ {
-                    print "        - name: spring-boot-app"
-                    print "          image: " tag 
-                    next
-                  }
-                  /replicas:/ {
-                    print "  replicas: \${REPLICAS_VALUE}"
-                    next
-                  }
-                  { print }
-                ' Manifests/deployment.yml > temp_deployment.yml
+                git config user.email "rami.ghazzawiabed@gmail.com"
+                git config user.name "ramighazzawi2002"
+
+                # FIX: Using the correct, robust BSD sed syntax (pipe delimiter and double quotes)
+                # This should resolve both the "sed: can't read" error and the "Syntax error: ("
+                sed -i '' "s|image: ramighazzawi/cicd-pipeline:[^ ]*|image: ramighazzawi/cicd-pipeline:\${BUILD_NUMBER}|g" Manifests/deployment.yml
+
+                sed -i '' "s|replicas: [0-9]*|replicas: \${REPLICAS_VALUE}|g" Manifests/deployment.yml
                 
-                mv temp_deployment.yml Manifests/deployment.yml
-
-                // ... (git add, commit, push commands are the same)
-              """
-            }
+                git add Manifests/deployment.yml
+                
+                # Use a reliable syntax for checking differences
+                if git diff --cached --exit-code; then
+                    echo "No changes found in Manifests/deployment.yml. Skipping commit."
+                else
+                    git commit -m "Update deployment image to version \${BUILD_NUMBER} and replicas to \${REPLICAS_VALUE}"
+                    git push https://\${GITHUB_TOKEN}@github.com/\${GIT_USER_NAME}/\${GIT_REPO_NAME} HEAD:main
+                fi
+            """
         }
     }
+}
     
     stage('Deploy to Kubernetes') {
       steps {
