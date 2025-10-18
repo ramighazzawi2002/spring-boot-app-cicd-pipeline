@@ -42,7 +42,7 @@ pipeline {
     
     stage('Build and Push Docker Image') {
       environment {
-        DOCKER_IMAGE = "pshar10/cicd-pipeline:${BUILD_NUMBER}"
+        DOCKER_IMAGE = "ramighazzawi/cicd-pipeline:${BUILD_NUMBER}"
         REGISTRY_CREDENTIALS = credentials('docker-cred')
       }
       steps {
@@ -87,7 +87,7 @@ pipeline {
                 REPLICAS_VALUE="${replicas}"
 
                 # Update the image tag
-                sed -i "s|image: pshar10/cicd-pipeline:[^ ]*|image: pshar10/cicd-pipeline:${BUILD_NUMBER}|g" Manifests/deployment.yml
+                sed -i "s|image:ramighazzawi/cicd-pipeline:[^ ]*|image: ramighazzawi/cicd-pipeline:${BUILD_NUMBER}|g" Manifests/deployment.yml
 
                 # Update the replicas count
                 sed -i "s|replicas: [0-9]*|replicas: ${REPLICAS_VALUE}|g" Manifests/deployment.yml
