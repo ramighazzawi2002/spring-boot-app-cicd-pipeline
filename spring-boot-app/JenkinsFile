@@ -59,8 +59,7 @@ pipeline {
     stage('Update Deployment File') {
       environment {
         GIT_REPO_NAME = "spring-boot-app-cicd-pipeline"
-        GIT_USER_NAME = "ramighazzawi2002
-"
+        GIT_USER_NAME = "ramighazzawi2002"
       }
         steps {
             withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
