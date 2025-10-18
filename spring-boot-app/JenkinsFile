@@ -57,7 +57,7 @@ pipeline {
       }
     }
     
-    stage('Update Deployment File') {
+   stage('Update Deployment File') {
       environment {
         GIT_REPO_NAME = "spring-boot-app-cicd-pipeline"
         GIT_USER_NAME = "ramighazzawi2002"
@@ -70,11 +70,11 @@ pipeline {
                 git config user.email "rami.ghazzawiabed@gmail.com"
                 git config user.name "ramighazzawi2002"
                 
-                # Update Image Tag
-                sed -i '' 's|image: ramighazzawi/cicd-pipeline:[^ ]*|image: ramighazzawi/cicd-pipeline:${BUILD_NUMBER}|g' Manifests/deployment.yml
+                # FIX 1: Using '/' as delimiter for image update, with the necessary BSD sed empty argument ''
+                sed -i '' 's/image: ramighazzawi\\/cicd-pipeline:[^ ]*/image: ramighazzawi\\/cicd-pipeline:${BUILD_NUMBER}/g' Manifests/deployment.yml
 
-                # Update Replicas Count
-                sed -i '' 's|replicas: [0-9]*|replicas: \${REPLICAS_VALUE}|g' Manifests/deployment.yml
+                # FIX 2: Using '/' as delimiter for replicas update
+                sed -i '' 's/replicas: [0-9]*/replicas: \${REPLICAS_VALUE}/g' Manifests/deployment.yml
                 
                 git add Manifests/deployment.yml
                 
