@@ -94,5 +94,21 @@ pipeline {
             }
         }
     }
+    stage('Deploy to Kubernetes') {
+      steps {
+        script {
+          // ملاحظة: يجب أن يكون لديك إعداد لـ kubectl يعمل ضمن Jenkins Agent
+          // ويجب أن يكون ملف 'kubeconfig' متاحًا أو تم إعداده مسبقًا.
+
+          // تطبيق ملف التوزيع (Deployment)
+          sh 'kubectl apply -f Manifests/deployment.yml'
+          
+          // تطبيق ملف الخدمة (Service) للتأكد من تحديث المنافذ والوصول
+          sh 'kubectl apply -f Manifests/service.yml' 
+          
+          echo "Deployment of image ${BUILD_NUMBER} complete. Check service external IP."
+        }
+      }
+    }
   }
 }
