@@ -6,17 +6,14 @@ pipeline {
     }
   }
   
-  // --- التعديل الحاسم: تخطي عملية الخروج التلقائية الفاشلة ---
   options {
     skipDefaultCheckout(true)
   }
-  // -------------------------------------------------------------
   
   stages {
     
     stage('Checkout') {
       steps {
-        // بما أننا تخطينا الخروج التلقائي، يجب أن نقوم بالخروج يدوياً الآن
         checkout scm 
         sh 'echo Repository checked out successfully'
       }
@@ -29,16 +26,7 @@ pipeline {
       }
     }
     
-    // stage('Static Code Analysis') {
-    //   environment {
-    //     SONAR_URL = "http://54.144.5.200:9000"
-    //   }
-    //   steps {
-    //     withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-    //       sh 'cd spring-boot-app && mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
-    //     }
-    //   }
-    // }
+    // (Static Code Analysis stage is commented out, which is fine for now)
     
     stage('Build and Push Docker Image') {
       environment {
@@ -60,7 +48,8 @@ pipeline {
     stage('Ask for Replicas') {
       steps {
         script {
-          replicas = input(
+          // 🛑 FIX 1: Store input directly into a global environment variable (env.REPLICAS_VALUE)
+          env.REPLICAS_VALUE = input(
             message: 'Enter the number of replicas:',
             parameters: [
               string(defaultValue: '2', description: 'Number of replicas', name: 'replicas')
@@ -77,26 +66,31 @@ pipeline {
       }
         steps {
             withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-              sh '''
-                echo "Replicas value: ${replicas}"
+              // Using triple quotes (""") for cleaner shell scripts
+              sh """
+                # The value is now available through the environment variable
+                echo "Replicas value: \$REPLICAS_VALUE"
 
-                # هذه الأوامر تعمل الآن لأن 'checkout scm' في المرحلة الأولى هيأت مجلد Git
                 git config user.email "rami.ghazzawiabed@gmail.com"
                 git config user.name "ramighazzawi2002"
-                BUILD_NUMBER=${BUILD_NUMBER}
-                REPLICAS_VALUE="${replicas}"
+                
+                # 🛑 FIX 2a: Ensure space after 'image:' in the search pattern to match YAML format
+                # Note: Check your YAML file for the exact image name (ramighazzawi vs pshar10)
+                sed -i 's|image: ramighazzawi/cicd-pipeline:[^ ]*|image: ramighazzawi/cicd-pipeline:${BUILD_NUMBER}|g' Manifests/deployment.yml
 
-                # Update the image tag
-                sed -i "s|image:ramighazzawi/cicd-pipeline:[^ ]*|image: ramighazzawi/cicd-pipeline:${BUILD_NUMBER}|g" Manifests/deployment.yml
-
-                # Update the replicas count
-                sed -i "s|replicas: [0-9]*|replicas: ${REPLICAS_VALUE}|g" Manifests/deployment.yml
+                # 🛑 FIX 2b: Use the environment variable directly
+                sed -i 's|replicas: [0-9]*|replicas: \${REPLICAS_VALUE}|g' Manifests/deployment.yml
                 
                 git add Manifests/deployment.yml
-                git commit -m "Update deployment image to version ${BUILD_NUMBER} and replicas to ${REPLICAS_VALUE}"
                 
-                git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
-              '''
+                # Check if there are changes before committing
+                if git diff --cached --exit-code; then
+                    echo "No changes found in Manifests/deployment.yml. Skipping commit."
+                else
+                    git commit -m "Update deployment image to version \${BUILD_NUMBER} and replicas to \${REPLICAS_VALUE}"
+                    git push https://\${GITHUB_TOKEN}@github.com/\${GIT_USER_NAME}/\${GIT_REPO_NAME} HEAD:main
+                fi
+              """
             }
         }
     }
