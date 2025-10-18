@@ -62,28 +62,29 @@ pipeline {
         GIT_REPO_NAME = "spring-boot-app-cicd-pipeline"
         GIT_USER_NAME = "ramighazzawi2002"
       }
-        steps {
+       steps {
             withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
               sh """
                 echo "Replicas value: \${REPLICAS_VALUE}"
+                // ... (git config commands are the same)
 
-                git config user.email "rami.ghazzawiabed@gmail.com"
-                git config user.name "ramighazzawi2002"
+                # FIX: استخدام awk بدلاً من sed لتجنب مشاكل الصيغة
+                awk -v tag="ramighazzawi/cicd-pipeline:\${BUILD_NUMBER}" '
+                  /image:/ {
+                    print "        - name: spring-boot-app"
+                    print "          image: " tag 
+                    next
+                  }
+                  /replicas:/ {
+                    print "  replicas: \${REPLICAS_VALUE}"
+                    next
+                  }
+                  { print }
+                ' Manifests/deployment.yml > temp_deployment.yml
                 
-                # FIX 1: تم تعديل صيغة sed لاستخدام الاقتباس المزدوج والحجة الفارغة ''
-                sed -i '' "s|image: ramighazzawi/cicd-pipeline:[^ ]*|image: ramighazzawi/cicd-pipeline:\${BUILD_NUMBER}|g" Manifests/deployment.yml
+                mv temp_deployment.yml Manifests/deployment.yml
 
-                # FIX 2: تم تعديل صيغة sed لتحديث عدد النسخ
-                sed -i '' "s|replicas: [0-9]*|replicas: \${REPLICAS_VALUE}|g" Manifests/deployment.yml
-                
-                git add Manifests/deployment.yml
-                
-                if git diff --cached --exit-code; then
-                    echo "No changes found in Manifests/deployment.yml. Skipping commit."
-                else
-                    git commit -m "Update deployment image to version \${BUILD_NUMBER} and replicas to \${REPLICAS_VALUE}"
-                    git push https://\${GITHUB_TOKEN}@github.com/\${GIT_USER_NAME}/\${GIT_REPO_NAME} HEAD:main
-                fi
+                // ... (git add, commit, push commands are the same)
               """
             }
         }
