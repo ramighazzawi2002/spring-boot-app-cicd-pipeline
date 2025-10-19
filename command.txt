@@ -1,9 +1,9 @@
 kubectl cluster-info
 kubectl config view --flatten --minify
 
- minikube ip
+minikube ip
 
-  minikube service spring-boot-app-service --url
+minikube service spring-boot-app-service --url
 
 kubectl get pods
 
@@ -16,3 +16,9 @@ minikube start --driver=qemu --network=socket_vmnet --apiserver-ips=192.168.100.
 minikube delete
 
 kubectl config set-cluster minikube --server=https://10.0.2.15:8443
+
+docker run -d \    
+  --name jenkins \
+  -p 8080:8080 -p 50000:50000 \
+  -v jenkins_home:/var/jenkins_home \
+  jenkins/jenkins:lts
